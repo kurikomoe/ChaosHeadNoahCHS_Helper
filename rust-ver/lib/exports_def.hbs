@@ -1,0 +1,5 @@
+LIBRARY {{dll_name}}
+EXPORTS
+{{#each func_names}}
+	{{this.name}}=f_{{this.name}} @{{this.ord}}
+{{/each}}

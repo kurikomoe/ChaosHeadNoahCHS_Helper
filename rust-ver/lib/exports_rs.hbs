@@ -1,0 +1,32 @@
+
+pub mod proxy {
+    use std::arch::asm;
+    use std::ffi::c_void;
+    use windows::core::{s, w};
+    use windows::Win32::Foundation::HMODULE;
+    use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
+
+    #[no_mangle]
+    pub static mut hDll: HMODULE = HMODULE(std::ptr::null_mut());
+
+    {{#each func_names}}
+    #[no_mangle]
+    static mut o_{{this.name}}: *const c_void = std::ptr::null();
+
+    #[no_mangle] pub unsafe extern "system" fn f_{{this.name}}() {
+        asm!(
+            "jmp ${target}",
+            target = in(reg) o_{{this.name}},
+            options(nostack),
+        );
+    }
+    {{/each}}
+
+    pub unsafe fn setupRedirection() {
+        hDll = LoadLibraryW(w!(r#"C:\windows\system32\dbghelp.dll"#)).unwrap();
+
+        {{#each func_names}}
+        o_{{this.name}} = GetProcAddress(hDll, s!("{{this.name}}")).unwrap() as *const c_void;
+        {{/each}}
+    }
+}
